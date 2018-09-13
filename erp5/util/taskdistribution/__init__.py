@@ -40,11 +40,13 @@ Example use:
       test_line.stop()
 """
 from __future__ import print_function
-import httplib
+from six.moves import (
+  http_client as httplib,
+  xmlrpc_client as xmlrpclib,
+)
 import socket
 import threading
 import time
-import xmlrpclib
 
 __all__ = ['TaskDistributor', 'TestResultProxy', 'TestResultLineProxy', 'patchRPCParser']
 
@@ -89,7 +91,7 @@ def patchRPCParser(error_handler):
     def verbose_feed(self, data):
         try:
             return original_feed(self, data)
-        except Exception, exc:
+        except Exception as exc:
             if not error_handler(data, exc):
                 raise
     parser_klass.feed = verbose_feed

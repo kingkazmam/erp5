@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import argparse
 import re, os, shlex, glob
 import sys, threading, subprocess
@@ -73,7 +75,7 @@ class Persistent(object):
     if attr == '_db':
       try:
         db = file(self._filename, 'r+')
-      except IOError, e:
+      except IOError as e:
         if e.errno != errno.ENOENT:
           raise
         db = file(self._filename, 'w+')
@@ -187,7 +189,7 @@ class TestSuite(object):
     quiet = kw.pop('quiet', False)
     env = kw and dict(os.environ, **kw) or None
     command = format_command(*args, **kw)
-    print '\n$ ' + command
+    print('\n$ ' + command)
     sys.stdout.flush()
     try:
       p = subprocess.Popen(args, stdin=self.stdin, stdout=subprocess.PIPE,
@@ -220,7 +222,7 @@ class TestSuite(object):
 class EggTestSuite(TestSuite):
 
   def run(self, test):
-    print test
+    print(test)
     original_dir = os.getcwd()
     try:
       os.chdir(self.egg_test_path_dict[test])
@@ -233,7 +235,7 @@ class EggTestSuite(TestSuite):
       runUnitTest = "{python} setup.py test".format(python=self.python_interpreter)
       args = tuple(shlex.split(runUnitTest))
       status_dict = self.spawn(*args, **kw)
-    except SubprocessError, e:
+    except SubprocessError as e:
       status_dict = e.status_dict
     test_log = status_dict['stderr']
     search = self.RUN_RE.search(test_log)
