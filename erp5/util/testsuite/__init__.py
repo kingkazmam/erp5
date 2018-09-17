@@ -5,10 +5,18 @@ import re, os, shlex, glob
 import sys, threading, subprocess
 import traceback
 import errno
+import pprint
+import six
+from six.moves import range
 
 from erp5.util import taskdistribution
-from pprint import pprint
 
+if six.PY3:
+  stdbin = lambda x: x.buffer
+else:
+  stdbin = lambda x: x
+
+# PY3: use shlex.quote
 _format_command_search = re.compile("[[\\s $({?*\\`#~';<>&|]").search
 _format_command_escape = lambda s: "'%s'" % r"'\''".join(s.split("'"))
 def format_command(*args, **kw):
@@ -33,7 +41,7 @@ def subprocess_capture(p, quiet=False):
       buffer.append(data)
   if p.stdout:
     stdout = []
-    output = quiet and (lambda data: None) or sys.stdout.write
+    output = (lambda data: None) if quiet else stdbin(sys.stdout).write
     stdout_thread = threading.Thread(target=readerthread,
                                      args=(p.stdout, output, stdout))
     stdout_thread.setDaemon(True)
@@ -41,7 +49,7 @@ def subprocess_capture(p, quiet=False):
   if p.stderr:
     stderr = []
     stderr_thread = threading.Thread(target=readerthread,
-                                     args=(p.stderr, sys.stderr.write, stderr))
+        args=(p.stderr, stdbin(sys.stderr).write, stderr))
     stderr_thread.setDaemon(True)
     stderr_thread.start()
   if p.stdout:
@@ -49,8 +57,8 @@ def subprocess_capture(p, quiet=False):
   if p.stderr:
     stderr_thread.join()
   p.wait()
-  return (p.stdout and ''.join(stdout),
-          p.stderr and ''.join(stderr))
+  return (p.stdout and b''.join(stdout),
+          p.stderr and b''.join(stderr))
 
 class SubprocessError(EnvironmentError):
   def __init__(self, status_dict):
@@ -74,15 +82,15 @@ class Persistent(object):
   def __getattr__(self, attr):
     if attr == '_db':
       try:
-        db = file(self._filename, 'r+')
+        db = open(self._filename, 'r+')
       except IOError as e:
         if e.errno != errno.ENOENT:
           raise
-        db = file(self._filename, 'w+')
+        db = open(self._filename, 'w+')
       else:
         try:
           self.__dict__.update(eval(db.read()))
-        except StandardError:
+        except Exception:
           pass
       self._db = db
       return db
@@ -91,7 +99,7 @@ class Persistent(object):
 
   def sync(self):
     self._db.seek(0)
-    db = dict(x for x in self.__dict__.iteritems() if x[0][:1] != '_')
+    db = dict(x for x in six.iteritems(self.__dict__) if x[0][:1] != '_')
     pprint.pprint(db, self._db)
     self._db.truncate()
 
@@ -105,10 +113,10 @@ class TestSuite(object):
   """
 
   RUN_RE = re.compile(
-    r'Ran (?P<all_tests>\d+) tests? in (?P<seconds>\d+\.\d+)s',
+    br'Ran (?P<all_tests>\d+) tests? in (?P<seconds>\d+\.\d+)s',
     re.DOTALL)
 
-  STATUS_RE = re.compile(r"""
+  STATUS_RE = re.compile(br"""
     (OK|FAILED)\s+\(
       (failures=(?P<failures>\d+),?\s*)?
       (errors=(?P<errors>\d+),?\s*)?
@@ -119,7 +127,7 @@ class TestSuite(object):
     """, re.DOTALL | re.VERBOSE)
 
   SUB_STATUS_RE = re.compile(
-      r"""SUB\s+RESULT:\s+(?P<all_tests>\d+)\s+Tests,\s+
+      br"""SUB\s+RESULT:\s+(?P<all_tests>\d+)\s+Tests,\s+
       (?P<failures>\d+)\s+Failures\s*
       \(?
         (skipped=(?P<skips>\d+),?\s*)?
@@ -132,7 +140,10 @@ class TestSuite(object):
   mysql_db_count = 1
   allow_restart = False
   realtime_output = True
-  stdin = file(os.devnull)
+  try: # PY3
+    stdin = subprocess.DEVNULL
+  except AttributeError:
+    stdin = open(os.devnull, 'rb')
 
   def __init__(self, max_instance_count, **kw):
     self.__dict__.update(kw)
@@ -141,8 +152,8 @@ class TestSuite(object):
     self.acquire = pool.acquire
     self.release = pool.release
     self._instance = threading.local()
-    self._pool = max_instance_count == 1 and [None] or \
-                 range(1, max_instance_count + 1)
+    self._pool = [None] if max_instance_count == 1 else \
+                 list(range(1, max_instance_count + 1))
     self._ready = set()
     self.running = {}
     if max_instance_count != 1:
@@ -255,7 +266,7 @@ class EggTestSuite(TestSuite):
     return status_dict
 
   def getTestList(self):
-    return self.egg_test_path_dict.keys()
+    return list(self.egg_test_path_dict)
 
 def runTestSuite():
   parser = argparse.ArgumentParser(description='Run a test suite.')
@@ -301,7 +312,7 @@ def runTestSuite():
   if test_result is not None:
     assert revision == test_result.revision, (revision, test_result.revision)
     while suite.acquire():
-      test = test_result.start(suite.running.keys())
+      test = test_result.start(list(suite.running))
       if test is not None:
         suite.start(test.name, lambda status_dict, __test=test:
           __test.stop(**status_dict))
