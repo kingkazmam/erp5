@@ -187,13 +187,14 @@ class TestSuite(object):
 
   def spawn(self, *args, **kw):
     quiet = kw.pop('quiet', False)
+    cwd = kw.pop('cwd', None)
     env = kw and dict(os.environ, **kw) or None
     command = format_command(*args, **kw)
     print('\n$ ' + command)
     sys.stdout.flush()
     try:
       p = subprocess.Popen(args, stdin=self.stdin, stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE, env=env)
+                           stderr=subprocess.PIPE, env=env, cwd=cwd)
     except Exception:
       # Catch any exception here, to warn user instead of beeing silent,
       # by generating fake error result
@@ -223,18 +224,9 @@ class EggTestSuite(TestSuite):
 
   def run(self, test):
     print(test)
-    original_dir = os.getcwd()
     try:
-      os.chdir(self.egg_test_path_dict[test])
-      return self.runUnitTest(test)
-    finally:
-      os.chdir(original_dir)
-
-  def runUnitTest(self, *args, **kw):
-    try:
-      runUnitTest = "{python} setup.py test".format(python=self.python_interpreter)
-      args = tuple(shlex.split(runUnitTest))
-      status_dict = self.spawn(*args, **kw)
+      status_dict = self.spawn(self.python_interpreter, 'setup.py', 'test',
+                               cwd=self.egg_test_path_dict[test])
     except SubprocessError as e:
       status_dict = e.status_dict
     test_log = status_dict['stderr']
