@@ -338,7 +338,7 @@ shared = true
     vcs_repository_info['branch'] = 'master'
     rev_list = self.getAndUpdateFullRevisionList(test_node, node_test_suite)
     output = call("git branch".split()).strip()
-    print output
+    print(output)
     self.assertTrue("* master" in output.split('\n'))
     # Add a third branch on remote, make sure we could switch to it
     remote_call = self.getCaller(cwd=self.remote_repository2)

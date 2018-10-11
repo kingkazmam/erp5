@@ -82,7 +82,7 @@ class Updater(object):
           # allow several processes clean the same folder at the same time
           try:
             os.remove(os.path.join(path, file))
-          except OSError, e:
+          except OSError as e:
             if e.errno != errno.ENOENT:
               raise
 
@@ -219,7 +219,7 @@ class Updater(object):
         self.deletePycFiles(path)
         try:
           status_dict = self.spawn(*args)
-        except SubprocessError, e:
+        except SubprocessError as e:
           if 'cleanup' not in e.stderr:
             raise
           self.spawn('svn', 'cleanup', path)

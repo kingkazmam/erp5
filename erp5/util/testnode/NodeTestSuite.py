@@ -75,7 +75,7 @@ class NodeTestSuite(SlapOSInstance):
       log_folder_path = os.path.join(self.log_directory, log_folder_name)
       try:
         os.makedirs(log_folder_path)
-      except OSError, e:
+      except OSError as e:
         if e.errno != errno.EEXIST:
           raise
       else:

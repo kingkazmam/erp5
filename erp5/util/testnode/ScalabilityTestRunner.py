@@ -30,24 +30,23 @@ import subprocess
 import sys
 import time
 import glob
-import SlapOSControler
-import SlapOSMasterCommunicator
+from . import SlapOSControler, SlapOSMasterCommunicator
 import json
 import time
 import shutil
 import logging
 import string
 import random
-import urlparse
+from six.moves.urllib import parse
 import base64
-import httplib
-import Utils
+from six.moves import http_client as httplib
+from . import Utils
 import requests
 import slapos.slap
-import cPickle as pickle
-from ProcessManager import SubprocessError, ProcessManager, CancellationError
+from six.moves import cPickle as pickle
+from .ProcessManager import SubprocessError, ProcessManager, CancellationError
 from subprocess import CalledProcessError
-from Updater import Updater
+from .Updater import Updater
 from erp5.util import taskdistribution
 from erp5.util.benchmark.thread import TestThread
 # for dummy slapos answer
@@ -363,7 +362,7 @@ Require valid-user
     user, password = self.generateProfilePasswordAccess()
     logger.info("Software Profile password: %s" % password)
     self.reachable_profile = "https://%s:%s@%s" % (user, password,
-      os.path.join(urlparse.urlparse(self.testnode.config['frontend_url']).netloc,
+      os.path.join(parse.urlparse(self.testnode.config['frontend_url']).netloc,
                    "software", self.randomized_path, "software.cfg"))
 
   def prepareSlapOSForTestSuite(self, node_test_suite):

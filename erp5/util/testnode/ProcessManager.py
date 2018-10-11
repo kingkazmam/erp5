@@ -109,7 +109,7 @@ def killCommand(pid):
   try:
     process = psutil.Process(pid)
     process.suspend()
-  except psutil.Error, e:
+  except psutil.Error as e:
     return
   process_list = [process]
   new_list = process.children(recursive=True)
@@ -118,19 +118,19 @@ def killCommand(pid):
     for child in new_list:
       try:
         child.suspend()
-      except psutil.Error, e:
+      except psutil.Error as e:
         logger.debug("killCommand/suspend: %s", e)
     time.sleep(1)
     new_list = set(process.children(recursive=True)).difference(process_list)
   for process in process_list:
     try:
       process.kill()
-    except psutil.Error, e:
+    except psutil.Error as e:
       logger.debug("killCommand/kill: %s", e)
 
 class ProcessManager(object):
 
-  stdin = file(os.devnull)
+  stdin = open(os.devnull)
 
   def __init__(self, max_timeout=MAX_TIMEOUT):
     self.process_pid_set = set()
